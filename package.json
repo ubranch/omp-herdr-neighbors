@@ -1,0 +1,27 @@
+{
+  "name": "omp-herdr-neighbors",
+  "version": "0.1.0",
+  "description": "Neighboring Herdr agents and CLI basics in OMP's context.",
+  "type": "module",
+  "license": "MIT",
+  "author": "ubranch",
+  "keywords": ["omp", "oh-my-pi", "herdr", "terminal", "agents"],
+  "exports": "./herdr-neighbors.ts",
+  "files": ["herdr-neighbors.ts", "README.md", "CHANGELOG.md", "LICENSE"],
+  "omp": {
+    "extensions": ["./herdr-neighbors.ts"]
+  },
+  "engines": {
+    "bun": ">=1.3.14"
+  },
+  "packageManager": "bun@1.4.2",
+  "scripts": {
+    "typecheck": "tsc --noEmit",
+    "test": "bun test"
+  },
+  "devDependencies": {
+    "@oh-my-pi/pi-coding-agent": "18.8.7",
+    "@types/bun": "1.4.2",
+    "typescript": "5.9.3"
+  }
+}
