@@ -1,0 +1,46 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="430" viewBox="0 0 1200 430"
+     role="img" aria-labelledby="title desc">
+  <title id="title">herdr neighbors — an omp extension</title>
+  <desc id="desc">Three Herdr panes. The current omp pane receives a hidden herdr-neighbors block that lists the other two agents: w1:p2 reviewer, claude, idle, and w1:p3, codex, working. Illustrated example, not a live recording.</desc>
+
+  <rect width="1200" height="430" rx="24" fill="#0A0A0A"/>
+  <rect x="0.5" y="0.5" width="1199" height="429" rx="24" fill="none" stroke="#1C1C1F"/>
+
+  <g id="title-block">
+    <text x="72" y="68" font-family="ui-monospace,SFMono-Regular,Menlo,Consolas,monospace"
+          font-size="20" letter-spacing="4" fill="#F97316">OMP EXTENSION</text>
+    <text x="68" y="144" font-family="-apple-system,BlinkMacSystemFont,Segoe UI,Inter,sans-serif"
+          font-size="60" font-weight="800" letter-spacing="-2" fill="#FAFAFA">herdr neighbors</text>
+    <text x="72" y="192" font-family="ui-monospace,SFMono-Regular,Menlo,Consolas,monospace"
+          font-size="22" fill="#71717A">your agent knows the other panes.</text>
+    <text x="72" y="224" font-family="ui-monospace,SFMono-Regular,Menlo,Consolas,monospace"
+          font-size="22" fill="#71717A">refreshed only when they change.</text>
+  </g>
+
+  <g id="panes" font-family="ui-monospace,SFMono-Regular,Menlo,Consolas,monospace">
+    <rect x="72" y="270" width="200" height="110" rx="12" fill="#111113" stroke="#27272A"/>
+    <text x="90" y="304" font-size="18" fill="#A1A1AA">w1:p2</text>
+    <text x="90" y="334" font-size="20" fill="#FAFAFA">claude</text>
+    <text x="90" y="362" font-size="18" fill="#4ADE80">idle</text>
+
+    <rect x="288" y="270" width="200" height="110" rx="12" fill="#111113" stroke="#27272A"/>
+    <text x="306" y="304" font-size="18" fill="#A1A1AA">w1:p3</text>
+    <text x="306" y="334" font-size="20" fill="#FAFAFA">codex</text>
+    <text x="306" y="362" font-size="18" fill="#FACC15">working</text>
+
+    <path d="M500 325 H 560" stroke="#F97316" stroke-width="2" stroke-dasharray="6 6"/>
+    <path d="M556 318 L 568 325 L 556 332" fill="none" stroke="#F97316" stroke-width="2"/>
+  </g>
+
+  <g id="omp-pane" font-family="ui-monospace,SFMono-Regular,Menlo,Consolas,monospace">
+    <rect x="580" y="64" width="548" height="316" rx="16" fill="#111113" stroke="#F97316"/>
+    <text x="604" y="100" font-size="18" fill="#F97316">w1:p1 · omp · this pane</text>
+    <text x="604" y="150" font-size="20" fill="#71717A">&lt;herdr-neighbors&gt;</text>
+    <text x="604" y="186" font-size="20" fill="#FAFAFA">w1:p2(reviewer) claude idle</text>
+    <text x="604" y="214" font-size="18" fill="#71717A">  C:/review | Review changes</text>
+    <text x="604" y="250" font-size="20" fill="#FAFAFA">w1:p3 codex working</text>
+    <text x="604" y="278" font-size="18" fill="#71717A">  C:/api | Fix login test</text>
+    <text x="604" y="314" font-size="20" fill="#71717A">&lt;/herdr-neighbors&gt;</text>
+    <text x="604" y="356" font-size="18" fill="#52525B">hidden · sent on change or every 10 turns</text>
+  </g>
+</svg>

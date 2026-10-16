@@ -1,11 +1,11 @@
 {
   "name": "omp-herdr-neighbors",
   "version": "0.1.0",
-  "description": "Neighboring Herdr agents and CLI basics in OMP's context.",
+  "description": "tells your omp agent which other herdr agents run beside it. hidden context, refreshed on change, no runtime deps.",
   "type": "module",
   "license": "MIT",
   "author": "ubranch",
-  "keywords": ["omp", "oh-my-pi", "herdr", "terminal", "agents"],
+  "keywords": ["ai-agents", "coding-agent", "developer-tools", "herdr", "multi-agent", "oh-my-pi", "omp", "pi-extension", "pi-package", "terminal-multiplexer", "typescript"],
   "exports": "./herdr-neighbors.ts",
   "files": ["herdr-neighbors.ts", "README.md", "CHANGELOG.md", "LICENSE"],
   "omp": {

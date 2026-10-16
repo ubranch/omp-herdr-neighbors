@@ -26,10 +26,18 @@ function isAgent(value: unknown): value is Agent {
     && (agent.name == null || typeof agent.name === "string");
 }
 
-function quote(value: string): string {
-  return JSON.stringify(value.replace(/\s+/gu, " ").slice(0, 160))
+function clean(value: string, max: number): string {
+  const text = value.replace(/\s+/gu, " ").trim();
+  return (text.length > max ? `${text.slice(0, max - 1)}…` : text)
     .replaceAll("&", "&amp;").replaceAll("<", "&lt;").replaceAll(">", "&gt;");
 }
+
+// Sent once per session: later blocks are list-only to save tokens.
+const GUIDE = [
+  "Line format: pane[(name)] kind status cwd | title",
+  "Read: herdr agent read <pane> --source recent-unwrapped --lines 120",
+  "Prompt, send-keys or close other panes only when the user asks.",
+];
 
 export default function herdrNeighbors(omp: ExtensionAPI): void {
   const ownPane = process.env.HERDR_PANE_ID;
@@ -38,6 +46,7 @@ export default function herdrNeighbors(omp: ExtensionAPI): void {
   const workspace = process.env.HERDR_WORKSPACE_ID;
   let lastKey: string | undefined;
   let turnsSinceInjection = 0;
+  let guideSent = false;
 
   omp.on("before_agent_start", async () => {
     turnsSinceInjection++;
@@ -65,24 +74,21 @@ export default function herdrNeighbors(omp: ExtensionAPI): void {
       if (key === lastKey && turnsSinceInjection < REFRESH_EVERY_TURNS) return;
 
       const lines = neighbors.slice(0, 12).map((agent) =>
-        `- pane_id=${quote(agent.pane_id)}${agent.name ? ` name=${quote(agent.name)}` : ""}`
-        + ` kind=${quote(agent.agent)} status=${quote(agent.agent_status)}`
-        + ` cwd=${quote(agent.cwd)} title=${quote(agent.terminal_title_stripped)}`,
+        `${clean(agent.pane_id, 40)}${agent.name ? `(${clean(agent.name, 32)})` : ""}`
+        + ` ${clean(agent.agent, 20)} ${clean(agent.agent_status, 20)}`
+        + ` ${clean(agent.cwd, 160)} | ${clean(agent.terminal_title_stripped, 60)}`,
       );
       if (!neighbors.length) lines.push("No other agents.");
       if (neighbors.length > 12) lines.push(`+${neighbors.length - 12} more`);
       const content = [
         "<herdr-neighbors>",
+        ...(guideSent ? [] : GUIDE),
         ...lines,
-        "herdr agent read <pane> --source recent-unwrapped --lines 120",
-        "herdr agent get <pane>",
-        'herdr agent prompt <target> "..." --wait --timeout 120000',
-        'herdr pane list --workspace "$HERDR_WORKSPACE_ID"',
-        "Read freely; prompt/send-keys/close only when the user asks.",
         "</herdr-neighbors>",
       ].join("\n");
       lastKey = key;
       turnsSinceInjection = 0;
+      guideSent = true;
       return { message: { customType: "herdr-neighbors", content, display: false } };
     } catch {
       return;

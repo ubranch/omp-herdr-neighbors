@@ -105,13 +105,17 @@ test("injects other agents and actionable CLI basics without exposing the own pa
   expect(content).toStartWith("<herdr-neighbors>\n");
   expect(content).toEndWith("\n</herdr-neighbors>");
   expect(content).not.toContain("w1:p1");
-  expect(content).toContain('pane_id="w1:p2" name="reviewer" kind="claude" status="idle"');
-  expect(content).toContain('cwd="C:/review" title="Review changes"');
+  expect(content).toContain("w1:p2(reviewer) claude idle C:/review | Review changes");
   expect(content).toContain("herdr agent read <pane> --source recent-unwrapped --lines 120");
-  expect(content).toContain("herdr agent get <pane>");
-  expect(content).toContain('herdr agent prompt <target> "..." --wait --timeout 120000');
-  expect(content).toContain('herdr pane list --workspace "$HERDR_WORKSPACE_ID"');
-  expect(content).toContain("Read freely; prompt/send-keys/close only when the user asks.");
+  expect(content).toContain("only when the user asks");
+});
+
+test("sends the CLI guide only once per session", async () => {
+  const handler = loadHandler()!;
+  await handler();
+  setAgents([own, { ...neighbor, agent_status: "working" }]);
+  const content = (await handler())!.message.content;
+  expect(content).toBe("<herdr-neighbors>\nw1:p2(reviewer) claude working C:/review | Review changes\n</herdr-neighbors>");
 });
 
 test("does not repeat an unchanged neighbor list", async () => {
@@ -124,7 +128,7 @@ test("reinjects a status-only change", async () => {
   const handler = loadHandler()!;
   await handler();
   setAgents([own, { ...neighbor, agent_status: "working" }]);
-  expect((await handler())?.message.content).toContain('status="working"');
+  expect((await handler())?.message.content).toContain("claude working");
 });
 
 test("ignores title and focus churn", async () => {
@@ -165,7 +169,7 @@ test("reinjects after another pane appears or disappears", async () => {
   const handler = loadHandler()!;
   await handler();
   setAgents([own, neighbor, { ...neighbor, pane_id: "w1:p3", name: "writer" }]);
-  expect((await handler())?.message.content).toContain('pane_id="w1:p3"');
+  expect((await handler())?.message.content).toContain("w1:p3(writer)");
   setAgents([own, neighbor]);
   const removed = await handler();
   expect(removed).toBeDefined();
@@ -190,9 +194,9 @@ test("shows the current workspace first and caps the agent list", async () => {
     neighbor,
   ]);
   const content = (await loadHandler()!())!.message.content;
-  const lines = content.split("\n").filter((line) => line.startsWith("- pane_id="));
+  const lines = content.split("\n").filter((line) => /^w\d+:p\d+/u.test(line));
   expect(lines).toHaveLength(12);
-  expect(lines[0]).toContain('pane_id="w1:p2"');
+  expect(lines[0]).toStartWith("w1:p2");
   expect(content).toContain("+3 more");
 });
 
@@ -207,8 +211,8 @@ test("allows agents without names", async () => {
   const { name, ...unnamed } = neighbor;
   setAgents([own, unnamed]);
   const content = (await loadHandler()!())!.message.content;
-  expect(content).toContain('pane_id="w1:p2" kind="claude"');
-  expect(content).not.toContain("name=");
+  expect(content).toContain("\nw1:p2 claude idle");
+  expect(content).not.toContain("w1:p2(");
 });
 
 test("keeps metadata on one line and prevents it from closing the context block", async () => {
@@ -218,7 +222,7 @@ test("keeps metadata on one line and prevents it from closing the context block"
   }]);
   const content = (await loadHandler()!())!.message.content;
   expect(content.match(/<\/herdr-neighbors>/g)).toHaveLength(1);
-  expect(content).toContain('cwd="C:/review second line"');
+  expect(content).toContain(" C:/review second line | ");
   expect(content).toContain("&lt;/herdr-neighbors&gt;");
   expect(content).toContain("&amp;");
 });
@@ -226,8 +230,8 @@ test("keeps metadata on one line and prevents it from closing the context block"
 test("bounds long metadata fields", async () => {
   setAgents([own, { ...neighbor, terminal_title_stripped: "x".repeat(10_000) }]);
   const content = (await loadHandler()!())!.message.content;
-  expect(content).toContain("x".repeat(160));
-  expect(content).not.toContain("x".repeat(161));
+  expect(content).toContain(`${"x".repeat(59)}…`);
+  expect(content).not.toContain("x".repeat(60));
 });
 
 test.each([
@@ -256,8 +260,8 @@ test.each([null, { ...neighbor, pane_id: 7 }, { ...neighbor, name: 7 }])(
   async (bad) => {
     setResponse(JSON.stringify({ result: { agents: [bad, neighbor] } }));
     const content = (await loadHandler()!())?.message.content;
-    expect(content).toContain(`pane_id="${neighbor.pane_id}"`);
-    expect(content).not.toContain("pane_id=7");
+    expect(content?.match(/\nw1:p2\(reviewer\) claude/gu)).toHaveLength(1);
+    expect(content).not.toContain("\n7 ");
   },
 );
 
@@ -268,7 +272,7 @@ test("returns nothing when the binary is missing", async () => {
 
 test("supports an explicit HERDR_BIN path", async () => {
   process.env.HERDR_BIN = join(directory, process.platform === "win32" ? "herdr.exe" : "herdr");
-  expect((await loadHandler()!())?.message.content).toContain('pane_id="w1:p2"');
+  expect((await loadHandler()!())?.message.content).toContain("\nw1:p2(reviewer)");
 });
 
 test("returns nothing when herdr exceeds the two-second timeout", async () => {

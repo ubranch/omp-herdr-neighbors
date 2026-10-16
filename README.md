@@ -1,16 +1,35 @@
-# herdr neighbors
+<div align="center">
 
-An OMP extension that tells the agent which other Herdr agents are running.
-It adds a hidden `<herdr-neighbors>` message before the first user turn,
-including pane IDs, names, agent kinds, statuses, directories, titles, and CLI basics.
+<img src="./assets/readme/hero.svg" width="100%"
+     alt="herdr neighbors, an omp extension. The current omp pane receives a hidden herdr-neighbors block that lists two other Herdr agents: w1:p2 reviewer, claude, idle; w1:p3, codex, working. Illustrated example.">
+
+<p>
+<img src="https://img.shields.io/badge/typescript-1E1E22?style=flat-square" alt="TypeScript">
+<img src="https://img.shields.io/badge/omp_18.8.7-1E1E22?style=flat-square" alt="Compatibility target: omp 18.8.7">
+<img src="https://img.shields.io/badge/herdr_0.9.5-1E1E22?style=flat-square" alt="Compatibility target: herdr 0.9.5">
+<img src="https://img.shields.io/badge/0_runtime_deps-1E1E22?style=flat-square" alt="No runtime dependencies">
+<img src="https://img.shields.io/badge/36_tests-1E1E22?style=flat-square" alt="36 tests">
+<a href="#install"><img src="https://img.shields.io/badge/install-F97316?style=flat-square&labelColor=1E1E22" alt="Install"></a>
+</p>
+
+</div>
+
+**Herdr Neighbors** is an omp extension that tells the agent which other Herdr
+agents run beside it. Before a user turn, it adds a hidden `<herdr-neighbors>`
+block: pane IDs, names, agent kinds, statuses, directories, and titles.
 The current pane is excluded. Agents in the current workspace come first.
 
-One TypeScript file. No runtime dependencies. Targets OMP **18.8.7** and
-Herdr **0.9.5**.
+**It works in running chats too: the list refreshes on change, not every turn.**
 
 ## install
 
-Copy the file from this repository into OMP's extension directory:
+Use omp's native GitHub plugin installer:
+
+```sh
+omp plugin install github:ubranch/omp-herdr-neighbors
+```
+
+Or copy the file into omp's extension directory:
 
 ```sh
 mkdir -p ~/.omp/agent/extensions
@@ -46,12 +65,10 @@ Example, not a live session recording:
 
 ```text
 <herdr-neighbors>
-- pane_id="w1:p2" name="reviewer" kind="claude" status="idle" cwd="C:/review" title="Review changes"
-herdr agent read <pane> --source recent-unwrapped --lines 120
-herdr agent get <pane>
-herdr agent prompt <target> "..." --wait --timeout 120000
-herdr pane list --workspace "$HERDR_WORKSPACE_ID"
-Read freely; prompt/send-keys/close only when the user asks.
+Line format: pane[(name)] kind status cwd | title
+Read: herdr agent read <pane> --source recent-unwrapped --lines 120
+Prompt, send-keys or close other panes only when the user asks.
+w1:p2(reviewer) claude idle C:/review | Review changes
 </herdr-neighbors>
 ```
 
@@ -68,16 +85,18 @@ the previous injection. Each injection resets that turn counter.
 Title-only, focus-only, and CLI response-order changes do not cause an early
 injection. A periodic refresh includes the latest titles.
 
-The list is capped at 12 agents, followed by `+N more` when needed.
-Each displayed metadata field is capped at 160 characters, kept on one line,
-and escaped so it cannot close the context block.
+The first block of a session carries a three-line guide. Later blocks carry
+only the agent lines. The list is capped at 12 agents, then `+N more`.
+Titles are cut at 60 characters and directories at 160. Every field is kept
+on one line and escaped so it cannot close the context block.
 
 Unchanged turns do not add another message until the tenth turn.
 Existing messages still occupy context and can count toward input tokens;
 this extension does not remove them or guarantee a token-cost reduction.
 
-A missing binary, nonzero exit, two-second timeout, malformed response, or
-invalid agent entry produces no message and does not interrupt OMP.
+A missing binary, nonzero exit, two-second timeout, or malformed response
+produces no message and does not interrupt omp. Invalid agent entries are
+skipped; valid neighbors still show.
 A failed read does not reset the refresh counter.
 
 ## safety
