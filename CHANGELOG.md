@@ -1,5 +1,13 @@
 # Changelog
 
+## 0.3.0 — 2026-10-16
+
+- Filter task text: skip short/noisy prompts and bare commands; drop leading `[Image #N]` placeholders; extract slash-command arguments and OMP skill-template user arguments without replacing a useful task with invocation boilerplate.
+- Choose useful reply lines instead of colon headings, table rows, or code fences, with the first cleaned line as fallback.
+- Read Claude Code and Codex asked/did text from local JSONL transcripts using absolute paths or cached session-ID lookups, environment overrides, parallel incremental reads bounded to 1 MiB, and per-pane failure isolation.
+- Ignore hidden working-reply changes in delta keys. Treat asked/did text as data, not instructions, in the injected safety guide.
+- Expand executable-boundary tests and document transcript locations, filters, privacy, and remeasured token costs.
+
 ## 0.2.0 — 2026-10-16
 
 - Send the full neighbor list and four-line guide once, then only new or changed lines and closed-pane notices. Unchanged turns never add a message; title-only changes do not trigger a delta.
