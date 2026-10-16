@@ -1,5 +1,13 @@
 # Changelog
 
+## 0.2.0 — 2026-10-16
+
+- Send the full neighbor list and four-line guide once, then only new or changed lines and closed-pane notices. Unchanged turns never add a message; title-only changes do not trigger a delta.
+- Publish this pane's task, live tool intent, and last reply through a zero-model-call Herdr metadata beacon. Trust task/reply tokens only from OMP panes and show replies only while idle.
+- Exclude subagents from every hook. Reset the full-list state on compaction, session switch, branch, and tree navigation; clear beacon tokens on session start and session switch.
+- Keep metadata on one line. Cap titles at 40 characters, directories at 80, tasks and replies at 80 (Herdr's token value limit), live intents at 60; shorten home directories to `~` and escape `<`.
+- Normalize `done` to `idle`, retain the 12-neighbor limit, and cap deltas at 12 changed lines plus closed-pane notices.
+
 ## 0.1.0 — 2026-10-15
 
 - Add hidden Herdr neighbor context through OMP's `before_agent_start` hook, with own-pane exclusion, current-workspace ordering, a 12-agent limit, and CLI basics.
