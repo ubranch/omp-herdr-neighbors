@@ -1,8 +1,8 @@
-import { afterAll, afterEach, beforeAll, beforeEach, expect, spyOn, test } from "bun:test";
+import { afterAll, afterEach, beforeAll, beforeEach, expect, test } from "bun:test";
 import { execFileSync } from "node:child_process";
-import { appendFileSync, existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
+import { existsSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { homedir, tmpdir } from "node:os";
-import { delimiter, dirname, join } from "node:path";
+import { delimiter, join } from "node:path";
 import type { ExtensionAPI } from "@oh-my-pi/pi-coding-agent";
 import herdrNeighbors from "../herdr-neighbors.ts";
 
@@ -17,7 +17,6 @@ type Agent = {
   focused: boolean;
   name?: string | null;
   tokens?: Record<string, unknown>;
-  agent_session: { agent: string; kind: "id" | "path"; source: string; value: string } | null;
 };
 type Injection = { message: { customType: string; content: string; display: boolean } };
 type EventName = "before_agent_start" | "session_start" | "session_switch"
@@ -37,7 +36,7 @@ type FixtureOptions = {
 
 const environmentKeys = [
   "HERDR_ENV", "HERDR_PANE_ID", "HERDR_WORKSPACE_ID", "OMPCODE",
-  "HERDR_BIN", "PATH", "HERDR_NEIGHBORS_FIXTURE", "HERDR_NEIGHBORS_LOG", "CLAUDE_CONFIG_DIR", "CODEX_HOME",
+  "HERDR_BIN", "PATH", "HERDR_NEIGHBORS_FIXTURE", "HERDR_NEIGHBORS_LOG",
 ] as const;
 const originalEnvironment = Object.fromEntries(
   environmentKeys.map((key) => [key, process.env[key]]),
@@ -48,12 +47,12 @@ const binary = join(directory, process.platform === "win32" ? "herdr.exe" : "her
 const own: Agent = {
   agent: "omp", agent_status: "working", cwd: "C:/own", pane_id: "w1:p1",
   tab_id: "w1:t1", workspace_id: "w1", terminal_title_stripped: "Own session",
-  focused: true, agent_session: null,
+  focused: true,
 };
 const neighbor: Agent = {
-  agent: "claude", agent_status: "idle", cwd: "C:/review", pane_id: "w1:p2",
+  agent: "gemini", agent_status: "idle", cwd: "C:/review", pane_id: "w1:p2",
   tab_id: "w1:t1", workspace_id: "w1", terminal_title_stripped: "Review changes",
-  focused: false, name: "reviewer", agent_session: null,
+  focused: false, name: "reviewer",
 };
 const guide = [
   "Other Herdr agents. Line: pane[(name)] kind status cwd | title | asked: last prompt | did: last reply",
@@ -105,36 +104,6 @@ async function turn(handlers = loadHandlers(), prompt = "Review the patch") {
 
 function block(...lines: string[]) {
   return ["<herdr-neighbors>", ...lines, "</herdr-neighbors>"].join("\n");
-}
-
-function jsonl(...entries: unknown[]): string {
-  return entries.map((entry) => JSON.stringify(entry)).join("\n") + "\n";
-}
-
-function writeTranscript(file: string, ...entries: unknown[]): string {
-  mkdirSync(dirname(file), { recursive: true });
-  writeFileSync(file, jsonl(...entries));
-  return file;
-}
-
-function transcriptAgent(agent: "claude" | "codex", value: string, kind: "path" | "id" = "path"): Agent {
-  return { ...neighbor, agent, agent_session: { agent, kind, source: "hook", value } };
-}
-
-function claudeUser(content: unknown, extra: Record<string, unknown> = {}) {
-  return { type: "user", message: { role: "user", content }, ...extra };
-}
-
-function claudeReply(text: string, extra: Record<string, unknown> = {}) {
-  return { type: "assistant", message: { role: "assistant", content: [{ type: "text", text }], stop_reason: "end_turn" }, ...extra };
-}
-
-function codexUser(text: string) {
-  return { type: "event_msg", payload: { type: "item_completed", item: { type: "UserMessage", content: [{ type: "text", text }] } } };
-}
-
-function codexReply(text: string | null) {
-  return { type: "event_msg", payload: { type: "task_complete", last_agent_message: text } };
 }
 
 function metadata(): string[][] {
@@ -232,8 +201,6 @@ beforeEach(() => {
   process.env.PATH = `${directory}${delimiter}${originalEnvironment.PATH ?? ""}`;
   process.env.HERDR_NEIGHBORS_FIXTURE = fixture;
   process.env.HERDR_NEIGHBORS_LOG = logFile;
-  process.env.CLAUDE_CONFIG_DIR = join(directory, `claude-${testNumber}`);
-  process.env.CODEX_HOME = join(directory, `codex-${testNumber}`);
   setAgents();
 });
 
@@ -265,9 +232,9 @@ test("injects the exact full guide, excludes own pane and sorts the current work
     message: {
       customType: "herdr-neighbors", display: false,
       content: block(...guide,
-        "w1:p2(reviewer) claude idle C:/review | Review changes",
-        "w1:p3(writer) claude idle C:/review | Review changes",
-        "w2:p1(remote) claude idle C:/review | Review changes"),
+        "w1:p2(reviewer) gemini idle C:/review | Review changes",
+        "w1:p3(writer) gemini idle C:/review | Review changes",
+        "w2:p1(remote) gemini idle C:/review | Review changes"),
     },
   });
 });
@@ -285,7 +252,7 @@ test("a status change emits only that pane without the guide or unchanged neighb
   await turn(handlers);
   setAgents([own, { ...neighbor, agent_status: "working" }, writer]);
   expect((await turn(handlers))?.message.content).toBe(block(
-    "w1:p2(reviewer) claude working C:/review | Review changes",
+    "w1:p2(reviewer) gemini working C:/review | Review changes",
   ));
   expect(await turn(handlers)).toBeUndefined();
 });
@@ -293,7 +260,7 @@ test("a status change emits only that pane without the guide or unchanged neighb
 test("done renders as idle and done to idle churn does not create a delta", async () => {
   const handlers = loadHandlers();
   setAgents([own, { ...neighbor, agent_status: "done" }]);
-  expect((await turn(handlers))?.message.content).toContain("claude idle C:/review");
+  expect((await turn(handlers))?.message.content).toContain("gemini idle C:/review");
   setAgents([own, neighbor]);
   expect(await turn(handlers)).toBeUndefined();
   setAgents([own, { ...neighbor, agent_status: "done" }]);
@@ -314,7 +281,7 @@ test("a new pane emits only its new line", async () => {
   await turn(handlers);
   setAgents([own, neighbor, { ...neighbor, pane_id: "w1:p3", name: "writer" }]);
   expect((await turn(handlers))?.message.content).toBe(block(
-    "w1:p3(writer) claude idle C:/review | Review changes",
+    "w1:p3(writer) gemini idle C:/review | Review changes",
   ));
 });
 
@@ -336,7 +303,7 @@ test("removing the last neighbor emits gone, not the initial empty message", asy
 });
 
 test.each([
-  ["agent", "codex"], ["cwd", "C:/elsewhere"], ["name", "writer"],
+  ["agent", "omp"], ["cwd", "C:/elsewhere"], ["name", "writer"],
 ] as const)("includes a neighbor's changed %s in its delta", async (field, value) => {
   const handlers = loadHandlers();
   await turn(handlers);
@@ -412,20 +379,20 @@ test("initially empty lists include the guide and stay silent until a neighbor a
   expect(await turn(handlers)).toBeUndefined();
   setAgents();
   expect((await turn(handlers))?.message.content).toBe(block(
-    "w1:p2(reviewer) claude idle C:/review | Review changes"));
+    "w1:p2(reviewer) gemini idle C:/review | Review changes"));
 });
 
 test("allows agents without names", async () => {
   const { name, ...unnamed } = neighbor;
   setAgents([own, unnamed]);
-  expect((await turn())?.message.content).toContain("\nw1:p2 claude idle C:/review | Review changes\n");
+  expect((await turn())?.message.content).toContain("\nw1:p2 gemini idle C:/review | Review changes\n");
 });
 
 test.each(["π ⠋ Fix login", "⠹ Fix login", "✅ Fix login"])(
   "strips a leading title glyph from %s and abbreviates the home cwd", async (title) => {
     setAgents([own, { ...neighbor, cwd: join(homedir(), "projects"), terminal_title_stripped: title }]);
     expect((await turn())?.message.content).toContain(
-      `w1:p2(reviewer) claude idle ${join("~", "projects")} | Fix login`,
+      `w1:p2(reviewer) gemini idle ${join("~", "projects")} | Fix login`,
     );
   },
 );
@@ -441,15 +408,15 @@ test.each([
   ["", "~"], ["/api", "~/api"], ["\\api", "~\\api"],
 ])("abbreviates home only at its directory boundary (%s)", async (suffix, expected) => {
   setAgents([own, { ...neighbor, cwd: `${homedir()}${suffix}` }]);
-  expect((await turn())?.message.content).toContain(` claude idle ${expected} | Review changes`);
+  expect((await turn())?.message.content).toContain(` gemini idle ${expected} | Review changes`);
 });
 
 test("does not abbreviate a sibling directory sharing the home prefix", async () => {
   const cwd = `${homedir()}2/api`;
   setAgents([own, { ...neighbor, cwd }]);
   const content = (await turn())!.message.content;
-  expect(content).toContain(` claude idle ${cwd.slice(0, 79)}`);
-  expect(content).not.toContain(" claude idle ~2/api");
+  expect(content).toContain(` gemini idle ${cwd.slice(0, 79)}`);
+  expect(content).not.toContain(" gemini idle ~2/api");
 });
 
 test("collapses whitespace and escapes only less-than signs in metadata", async () => {
@@ -467,7 +434,7 @@ test("collapses whitespace and escapes only less-than signs in metadata", async 
 test("caps titles at 40 characters and cwd at 80 characters", async () => {
   setAgents([own, { ...neighbor, cwd: `C:/${"c".repeat(100)}`, terminal_title_stripped: "t".repeat(100) }]);
   expect((await turn())?.message.content).toBe(block(...guide,
-    `w1:p2(reviewer) claude idle C:/${"c".repeat(76)}… | ${"t".repeat(39)}…`));
+    `w1:p2(reviewer) gemini idle C:/${"c".repeat(76)}… | ${"t".repeat(39)}…`));
 });
 
 test("caps the first full block at twelve panes and remembers omitted panes", async () => {
@@ -484,7 +451,7 @@ test("caps the first full block at twelve panes and remembers omitted panes", as
   expect(await turn(handlers)).toBeUndefined();
   setAgents([own, ...agents.map((agent, index) => index === 14 ? { ...agent, agent_status: "working" } : agent)]);
   expect((await turn(handlers))?.message.content).toBe(block(
-    "w2:p15(reviewer) claude working C:/review | Review changes"));
+    "w2:p15(reviewer) gemini working C:/review | Review changes"));
 });
 
 test("caps changed lines at twelve, counts more changed and still lists gone panes", async () => {
@@ -496,7 +463,7 @@ test("caps changed lines at twelve, counts more changed and still lists gone pan
   await turn(handlers);
   setAgents([own, ...agents.map((agent) => ({ ...agent, agent_status: "working" }))]);
   const content = (await turn(handlers))!.message.content;
-  expect(content.split("\n").filter((line) => line.includes(" claude working "))).toHaveLength(12);
+  expect(content.split("\n").filter((line) => line.includes(" gemini working "))).toHaveLength(12);
   expect(content).toContain("\n+3 more changed\n");
   expect(content).toContain("\nw1:p2 gone\n");
   expect(content).not.toContain(guide[0]);
@@ -529,7 +496,7 @@ test.each([null, { ...neighbor, pane_id: 7 }, { ...neighbor, name: 7 }])(
   "skips an invalid agent entry %j but keeps valid neighbors", async (bad) => {
     setResponse(JSON.stringify({ result: { agents: [bad, neighbor] } }));
     expect((await turn())?.message.content).toBe(block(...guide,
-      "w1:p2(reviewer) claude idle C:/review | Review changes"));
+      "w1:p2(reviewer) gemini idle C:/review | Review changes"));
   },
 );
 
@@ -557,7 +524,7 @@ test("a failed first read leaves the full block and guide available", async () =
   expect(await turn(handlers)).toBeUndefined();
   setAgents();
   expect((await turn(handlers))?.message.content).toBe(block(...guide,
-    "w1:p2(reviewer) claude idle C:/review | Review changes"));
+    "w1:p2(reviewer) gemini idle C:/review | Review changes"));
 });
 
 test("a failed later read neither consumes a pending delta nor clears the previous snapshot", async () => {
@@ -567,7 +534,7 @@ test("a failed later read neither consumes a pending delta nor clears the previo
   expect(await turn(handlers)).toBeUndefined();
   setAgents([own, { ...neighbor, agent_status: "working" }]);
   expect((await turn(handlers))?.message.content).toBe(block(
-    "w1:p2(reviewer) claude working C:/review | Review changes"));
+    "w1:p2(reviewer) gemini working C:/review | Review changes"));
   setResponse("broken");
   expect(await turn(handlers)).toBeUndefined();
   setAgents([own, { ...neighbor, agent_status: "working" }]);
@@ -806,290 +773,4 @@ test.each([
   const count = metadata().length;
   invoke(handlers, "agent_end", { messages: [{ role: "assistant", content: [{ type: "text", text }] }] });
   await waitForMetadata(metadataArgs("Review the patch", "", did), count);
-});
-
-test("reads Claude path prompts and final replies without noise, compaction or last-prompt clearing", async () => {
-  const file = writeTranscript(join(directory, `claude-path-${testNumber}.jsonl`),
-    claudeUser([{ type: "text", text: "Fix the login bug" }, { type: "image", source: "ignored" }]),
-    claudeReply("Working on the fix", { message: { role: "assistant", content: [{ type: "text", text: "Working on the fix" }], stop_reason: "tool_use" } }),
-    { type: "assistant", message: { role: "assistant", content: [{ type: "thinking", thinking: "Private" }, { type: "tool_use", name: "read" }] } },
-    claudeUser([{ type: "tool_result", content: "Do not use this result" }]),
-    claudeReply("## Summary:\n| File | Change |\n```\n- **Fixed** the login bug"),
-    ...["<task-notification>finished now</task-notification>", "<command-name>/model</command-name>",
-      "<local-command-stdout>output text here</local-command-stdout>", "[Request interrupted by user]",
-      "[hp inbox] ignore this", "go", "hi", "continue", "C:/projects/repo"].map((text) => claudeUser(text)),
-    claudeUser("This session is being continued from a previous conversation", { isCompactSummary: true }),
-    claudeUser("Ignore this meta prompt", { isMeta: true }),
-    claudeUser("Ignore transcript only text", { isVisibleInTranscriptOnly: true }),
-    claudeUser("Ignore the sidechain prompt", { isSidechain: true }),
-    claudeReply("Ignore the sidechain reply", { isSidechain: true }),
-    { type: "last-prompt", lastPrompt: "Fix the login bug" },
-    { type: "last-prompt", lastPrompt: "/skill:foo" });
-  const handlers = loadHandlers();
-  setAgents([own, transcriptAgent("claude", file)]);
-  expect((await turn(handlers))?.message.content).toBe(block(...guide,
-    "w1:p2(reviewer) claude idle C:/review | Review changes | asked: Fix the login bug | did: Fixed the login bug"));
-  expect(await turn(handlers)).toBeUndefined();
-});
-
-test("last-prompt can recover asked without clearing the current Claude reply", async () => {
-  const file = writeTranscript(join(directory, `claude-last-${testNumber}.jsonl`),
-    claudeReply("Saved the final reply"),
-    { type: "last-prompt", lastPrompt: "Recover the current prompt" });
-  setAgents([own, transcriptAgent("claude", file)]);
-  expect((await turn())?.message.content).toContain("asked: Recover the current prompt | did: Saved the final reply");
-});
-
-test.each(["claude", "codex"] as const)("resolves %s ids under its environment override", async (kind) => {
-  const id = "12345678-abcd-1234-abcd-123456789012";
-  const root = kind === "claude" ? process.env.CLAUDE_CONFIG_DIR! : process.env.CODEX_HOME!;
-  const file = kind === "claude"
-    ? join(root, "projects", "-C-Projects-api", `${id}.jsonl`)
-    : join(root, "sessions", "2026", "10", "16", `rollout-2026-10-16T12-00-00-${id}.jsonl`);
-  writeTranscript(file, ...(kind === "claude"
-    ? [claudeUser("Review the auth changes"), claudeReply("## Summary:\nAuth changes look correct")]
-    : [{ type: "session_meta", payload: { id } },
-      { type: "response_item", payload: { role: "user", content: [{ type: "text", text: "Injected environment context" }] } },
-      codexUser("Review the auth changes"), codexReply("## Summary:\nAuth changes look correct")]));
-  setAgents([own, transcriptAgent(kind, id, "id")]);
-  expect((await turn())?.message.content).toContain(
-    `${kind} idle C:/review | Review changes | asked: Review the auth changes | did: Auth changes look correct`);
-});
-
-test("ignores Codex injections, unrelated events and filtered prompts", async () => {
-  const file = writeTranscript(join(directory, `codex-events-${testNumber}.jsonl`),
-    codexUser("Fix the auth tests"), codexReply("Fixed the auth tests"),
-    { type: "response_item", payload: { role: "user", content: [{ type: "text", text: "Injected system prompt here" }] } },
-    { type: "event_msg", payload: { type: "item_completed", item: { type: "AssistantMessage", content: [{ type: "text", text: "Intermediate text" }] } } },
-    codexUser("1"), codexUser("[Request interrupted by user]"));
-  setAgents([own, transcriptAgent("codex", file)]);
-  expect((await turn())?.message.content).toContain("asked: Fix the auth tests | did: Fixed the auth tests");
-});
-
-test.each(["claude", "codex"] as const)("reads appended %s lines as a one-line delta and clears did on new tasks", async (kind) => {
-  const prompt = kind === "claude" ? claudeUser : codexUser;
-  const reply = kind === "claude" ? claudeReply : codexReply;
-  const file = writeTranscript(join(directory, `${kind}-append-${testNumber}.jsonl`),
-    prompt("Fix the auth tests"), reply("Fixed the auth tests"));
-  const handlers = loadHandlers();
-  setAgents([own, transcriptAgent(kind, file)]);
-  await turn(handlers);
-  appendFileSync(file, jsonl(prompt("Update the login docs")));
-  expect((await turn(handlers))?.message.content).toBe(block(
-    `w1:p2(reviewer) ${kind} idle C:/review | Review changes | asked: Update the login docs`));
-  appendFileSync(file, jsonl(reply("Updated the login docs")));
-  expect((await turn(handlers))?.message.content).toBe(block(
-    `w1:p2(reviewer) ${kind} idle C:/review | Review changes | asked: Update the login docs | did: Updated the login docs`));
-  expect(await turn(handlers)).toBeUndefined();
-});
-
-test("hides working Claude replies without producing a delta for assistant text changes", async () => {
-  const file = writeTranscript(join(directory, `claude-working-${testNumber}.jsonl`),
-    claudeUser("Fix the login bug"), claudeReply("First intermediate reply"));
-  const agent = { ...transcriptAgent("claude", file), agent_status: "working" };
-  const handlers = loadHandlers();
-  setAgents([own, agent]);
-  expect((await turn(handlers))?.message.content).toBe(block(...guide,
-    "w1:p2(reviewer) claude working C:/review | Review changes | asked: Fix the login bug"));
-  appendFileSync(file, jsonl(claudeReply("Second intermediate reply")));
-  expect(await turn(handlers)).toBeUndefined();
-  setAgents([own, { ...agent, agent_status: "done" }]);
-  expect((await turn(handlers))?.message.content).toBe(block(
-    "w1:p2(reviewer) claude idle C:/review | Review changes | asked: Fix the login bug | did: Second intermediate reply"));
-});
-
-test("a Codex task_complete with null clears the last reply", async () => {
-  const file = writeTranscript(join(directory, `codex-null-${testNumber}.jsonl`),
-    codexUser("Fix the login bug"), codexReply("Fixed the login bug"));
-  const handlers = loadHandlers();
-  setAgents([own, transcriptAgent("codex", file)]);
-  await turn(handlers);
-  appendFileSync(file, jsonl(codexReply(null)));
-  expect((await turn(handlers))?.message.content).toBe(block(
-    "w1:p2(reviewer) codex idle C:/review | Review changes | asked: Fix the login bug"));
-});
-
-test("resets transcript state after a shorter rewrite", async () => {
-  const file = writeTranscript(join(directory, `claude-rewrite-${testNumber}.jsonl`),
-    claudeUser("Fix the very long previous login bug"), claudeReply("Previous reply ".repeat(30)));
-  const handlers = loadHandlers();
-  setAgents([own, transcriptAgent("claude", file)]);
-  await turn(handlers);
-  writeTranscript(file, claudeUser("Write the new docs"));
-  expect((await turn(handlers))?.message.content).toBe(block(
-    "w1:p2(reviewer) claude idle C:/review | Review changes | asked: Write the new docs"));
-});
-
-test("only parses complete JSONL lines and skips invalid records", async () => {
-  const file = writeTranscript(join(directory, `claude-partial-${testNumber}.jsonl`), claudeUser("Fix the login bug"));
-  appendFileSync(file, "broken JSON\nnull\n42\n" + JSON.stringify(claudeReply("Fixed the login bug")));
-  const handlers = loadHandlers();
-  setAgents([own, transcriptAgent("claude", file)]);
-  expect((await turn(handlers))?.message.content).toContain("asked: Fix the login bug");
-  expect(await turn(handlers)).toBeUndefined();
-  appendFileSync(file, "\n");
-  expect((await turn(handlers))?.message.content).toBe(block(
-    "w1:p2(reviewer) claude idle C:/review | Review changes | asked: Fix the login bug | did: Fixed the login bug"));
-});
-
-test("bounds first reads to the last MiB and drops its partial first line", async () => {
-  const file = join(directory, `claude-large-${testNumber}.jsonl`);
-  const final = jsonl(claudeReply("Tail reply stays visible"));
-  const embedded = JSON.stringify(claudeUser("Never treat partial data as prompt"));
-  const padding = "x".repeat(1_048_576 - Buffer.byteLength(embedded + "\n\n" + final));
-  writeFileSync(file, jsonl(claudeUser("Older prompt must stay unknown")) + "x".repeat(100) + embedded + "\n" + padding + "\n" + final);
-  const handlers = loadHandlers();
-  setAgents([own, transcriptAgent("claude", file)]);
-  expect((await turn(handlers))?.message.content).toBe(block(...guide,
-    "w1:p2(reviewer) claude idle C:/review | Review changes | did: Tail reply stays visible"));
-  appendFileSync(file, jsonl(claudeUser("Now capture this prompt")));
-  expect((await turn(handlers))?.message.content).toBe(block(
-    "w1:p2(reviewer) claude idle C:/review | Review changes | asked: Now capture this prompt"));
-});
-
-test("applies the MiB bound again after a large append and counts UTF-8 bytes", async () => {
-  const file = writeTranscript(join(directory, `claude-growing-${testNumber}.jsonl`),
-    claudeUser("Fix the login bug"), claudeReply("Old final reply"));
-  const handlers = loadHandlers();
-  setAgents([own, transcriptAgent("claude", file)]);
-  await turn(handlers);
-  appendFileSync(file, jsonl(claudeUser("Skipped prompt outside the tail"))
-    + "я".repeat(600_000) + "\n" + jsonl(claudeReply("## Summary:\nTuzatish tayyor bo‘ldi")));
-  expect((await turn(handlers))?.message.content).toBe(block(
-    "w1:p2(reviewer) claude idle C:/review | Review changes | asked: Fix the login bug | did: Tuzatish tayyor bo‘ldi"));
-  expect(await turn(handlers)).toBeUndefined();
-});
-
-test.each([
-  ["claude", "path", "relative/session.jsonl"],
-  ["claude", "path", join(directory, "session.txt")],
-  ["codex", "id", "../invalid-session"],
-  ["claude", "id", "short"],
-  ["claude", "id", "x".repeat(65)],
-] as const)("ignores invalid %s %s reference %s", async (kind, refKind, value) => {
-  if (refKind === "path" && value.endsWith(".txt")) writeTranscript(value, claudeUser("Never expose this prompt"));
-  setAgents([own, transcriptAgent(kind, value, refKind)]);
-  expect((await turn())?.message.content).toBe(block(...guide,
-    `w1:p2(reviewer) ${kind} idle C:/review | Review changes`));
-});
-
-test("missing transcript files do not throw or hide healthy neighbors", async () => {
-  const file = writeTranscript(join(directory, `healthy-${testNumber}.jsonl`), claudeUser("Review the healthy pane"));
-  setAgents([own, transcriptAgent("codex", join(directory, "missing.jsonl")),
-    { ...transcriptAgent("claude", file), pane_id: "w1:p3" }]);
-  const content = (await turn())?.message.content;
-  expect(content).toContain("w1:p2(reviewer) codex idle C:/review | Review changes\n");
-  expect(content).toContain("w1:p3(reviewer) claude idle C:/review | Review changes | asked: Review the healthy pane");
-});
-
-test("keeps the previous transcript state on read errors", async () => {
-  const file = writeTranscript(join(directory, `claude-error-${testNumber}.jsonl`),
-    claudeUser("Fix the login bug"), claudeReply("Fixed the login bug"));
-  const handlers = loadHandlers();
-  setAgents([own, transcriptAgent("claude", file)]);
-  await turn(handlers);
-  rmSync(file);
-  expect(await turn(handlers)).toBeUndefined();
-  writeTranscript(file, claudeUser("Write the new docs"));
-  expect((await turn(handlers))?.message.content).toBe(block(
-    "w1:p2(reviewer) claude idle C:/review | Review changes | asked: Write the new docs"));
-});
-
-test("drops transcript state when its pane disappears", async () => {
-  const file = writeTranscript(join(directory, `claude-pruned-${testNumber}.jsonl`),
-    claudeUser("Fix the login bug"), claudeReply("Fixed the login bug"));
-  const agent = transcriptAgent("claude", file);
-  const handlers = loadHandlers();
-  setAgents([own, agent]);
-  await turn(handlers);
-  setAgents([own]);
-  await turn(handlers);
-  writeFileSync(file, "x".repeat(1_048_600) + "\n" + jsonl(claudeReply("Only tail reply remains")));
-  setAgents([own, agent]);
-  expect((await turn(handlers))?.message.content).toBe(block(
-    "w1:p2(reviewer) claude idle C:/review | Review changes | did: Only tail reply remains"));
-});
-
-test("caches session id hits after the configured root changes", async () => {
-  const id = "cached-session-1234";
-  const file = writeTranscript(join(process.env.CLAUDE_CONFIG_DIR!, "projects", "api", `${id}.jsonl`),
-    claudeUser("Fix the login bug"));
-  const handlers = loadHandlers();
-  setAgents([own, transcriptAgent("claude", id, "id")]);
-  await turn(handlers);
-  process.env.CLAUDE_CONFIG_DIR = join(directory, "nonexistent-root");
-  appendFileSync(file, jsonl(claudeReply("Found the cached session")));
-  expect((await turn(handlers))?.message.content).toBe(block(
-    "w1:p2(reviewer) claude idle C:/review | Review changes | asked: Fix the login bug | did: Found the cached session"));
-});
-
-test("caches session id misses for sixty seconds", async () => {
-  const id = "missing-session-1234";
-  const handlers = loadHandlers();
-  setAgents([own, transcriptAgent("claude", id, "id")]);
-  await turn(handlers);
-  writeTranscript(join(process.env.CLAUDE_CONFIG_DIR!, "projects", "api", `${id}.jsonl`),
-    claudeUser("Find the newly created session"));
-  expect(await turn(handlers)).toBeUndefined();
-  const future = Date.now() + 60_001;
-  const clock = spyOn(Date, "now").mockReturnValue(future);
-  try {
-    expect((await turn(handlers))?.message.content).toBe(block(
-      "w1:p2(reviewer) claude idle C:/review | Review changes | asked: Find the newly created session"));
-  } finally {
-    clock.mockRestore();
-  }
-});
-
-test("keeps claude and codex id caches separate", async () => {
-  const id = "shared-session-1234";
-  writeTranscript(join(process.env.CLAUDE_CONFIG_DIR!, "projects", "api", `${id}.jsonl`),
-    claudeUser("Review the Claude changes"));
-  writeTranscript(join(process.env.CODEX_HOME!, "sessions", "2026", "10", "16", `rollout-local-${id}.jsonl`),
-    codexUser("Review the Codex changes"), codexReply("Codex review is complete"));
-  setAgents([own, transcriptAgent("claude", id, "id"),
-    { ...transcriptAgent("codex", id, "id"), pane_id: "w1:p3" }]);
-  const content = (await turn())?.message.content;
-  expect(content).toContain("asked: Review the Claude changes\n");
-  expect(content).toContain("asked: Review the Codex changes | did: Codex review is complete\n");
-});
-
-test("other agent kinds never read transcripts or task and did tokens", async () => {
-  const file = writeTranscript(join(directory, `other-${testNumber}.jsonl`),
-    claudeUser("Do not expose this prompt"), claudeReply("Do not expose this reply"));
-  setAgents([own, { ...transcriptAgent("claude", file), agent: "gemini",
-    tokens: { task: "Ignore this task", did: "Ignore this reply" } }]);
-  expect((await turn())?.message.content).toBe(block(...guide,
-    "w1:p2(reviewer) gemini idle C:/review | Review changes"));
-});
-
-test("rejects a relative path even when its transcript exists", async () => {
-  // relative() returns an absolute path when temp and cwd sit on different Windows drives.
-  const name = `relative-${testNumber}.jsonl`;
-  const file = writeTranscript(join(process.cwd(), name), claudeUser("Never expose this prompt"));
-  try {
-    setAgents([own, transcriptAgent("claude", name)]);
-    expect((await turn())?.message.content).toBe(block(...guide,
-      "w1:p2(reviewer) claude idle C:/review | Review changes"));
-  } finally {
-    rmSync(file, { force: true });
-  }
-});
-
-test("renders a full omp, Claude and Codex sample block", async () => {
-  const claude = writeTranscript(join(directory, `sample-claude-${testNumber}.jsonl`),
-    claudeUser("review the auth changes"), claudeReply("Review is still running"));
-  const codex = writeTranscript(join(directory, `sample-codex-${testNumber}.jsonl`),
-    codexUser("add regression tests now"), codexReply("Added login regression tests"));
-  setAgents([own,
-    { ...neighbor, agent: "omp", name: null, cwd: `${homedir()}/api`, terminal_title_stripped: "π ⠋ auth",
-      tokens: { task: "fix login test", did: "12 tests pass" } },
-    { ...transcriptAgent("claude", claude), pane_id: "w1:p3", cwd: `${homedir()}/api`,
-      agent_status: "working", terminal_title_stripped: "Review auth changes" },
-    { ...transcriptAgent("codex", codex), pane_id: "w1:p4", name: null, cwd: `${homedir()}/api`,
-      agent_status: "done", terminal_title_stripped: "Add auth tests" }]);
-  expect((await turn())?.message.content).toBe(block(...guide,
-    "w1:p2 omp idle ~/api | auth | asked: fix login test | did: 12 tests pass",
-    "w1:p3(reviewer) claude working ~/api | Review auth changes | asked: review the auth changes",
-    "w1:p4 codex idle ~/api | Add auth tests | asked: add regression tests now | did: Added login regression tests"));
 });

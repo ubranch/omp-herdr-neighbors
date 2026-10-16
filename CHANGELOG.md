@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.4.0 — 2026-10-16
+
+- Remove Claude Code and Codex transcript reading; asked/did come only from omp beacons.
+
 ## 0.3.0 — 2026-10-16
 
 - Filter task text: skip short/noisy prompts and bare commands; drop leading `[Image #N]` placeholders; extract slash-command arguments and OMP skill-template user arguments without replacing a useful task with invocation boilerplate.
