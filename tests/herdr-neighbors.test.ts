@@ -21,7 +21,7 @@ type Agent = {
 type Injection = { message: { customType: string; content: string; display: boolean } };
 type EventName = "before_agent_start" | "session_start" | "session_switch"
   | "session_compact" | "session_branch" | "session_tree"
-  | "tool_execution_start" | "agent_end";
+  | "tool_execution_start" | "agent_end" | "input";
 type Handler = (
   event: Record<string, unknown>,
   ctx: { agent: { kind: "main" | "sub" } },
@@ -595,13 +595,15 @@ test("agent_end selects the last assistant's text parts and cleans markdown", as
     messages: [
       { role: "assistant", content: [{ type: "text", text: "Old assistant reply" }] },
       { role: "user", content: [{ type: "text", text: "User text" }] },
-      { role: "assistant", content: [
-        { type: "thinking", thinking: "Private reasoning" },
-        { type: "toolCall", name: "read", id: "call-1", arguments: {} },
-        { type: "text", text: "\n \t\n" },
-        { type: "text", text: "  ## > - **Fixed**   login\nSecond line" },
-        { type: "text", text: "Do not use this later part" },
-      ] },
+      {
+        role: "assistant", content: [
+          { type: "thinking", thinking: "Private reasoning" },
+          { type: "toolCall", name: "read", id: "call-1", arguments: {} },
+          { type: "text", text: "\n \t\n" },
+          { type: "text", text: "  ## > - **Fixed**   login\nSecond line" },
+          { type: "text", text: "Do not use this later part" },
+        ]
+      },
       { role: "toolResult", content: [{ type: "text", text: "Trailing tool output" }] },
     ],
   })).toBeUndefined();
@@ -773,4 +775,15 @@ test.each([
   const count = metadata().length;
   invoke(handlers, "agent_end", { messages: [{ role: "assistant", content: [{ type: "text", text }] }] });
   await waitForMetadata(metadataArgs("Review the patch", "", did), count);
+});
+
+test("only typed input sets the task once the session has seen input; extension prompts keep it", async () => {
+  const handlers = loadHandlers();
+  invoke(handlers, "input", { text: "fix the flaky login test", source: "interactive" });
+  await turn(handlers, "fix the flaky login test");
+  await waitForMetadata(metadataArgs("fix the flaky login test"));
+  const after = metadata().length;
+  invoke(handlers, "input", { text: "ignored extension text here", source: "extension" });
+  await turn(handlers, "The required review is complete. Retry the previously blocked Git operation.");
+  await waitForMetadata(metadataArgs("fix the flaky login test"), after);
 });

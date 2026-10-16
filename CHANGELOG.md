@@ -3,6 +3,7 @@
 ## 0.4.0 — 2026-10-16
 
 - Remove Claude Code and Codex transcript reading; asked/did come only from omp beacons.
+- Take the beacon task only from typed input, so extension-sent prompts such as review-gate retries no longer replace it.
 
 ## 0.3.0 — 2026-10-16
 

@@ -8,7 +8,7 @@
 <img src="https://img.shields.io/badge/omp_18.8.7-1E1E22?style=flat-square" alt="Compatibility target: omp 18.8.7">
 <img src="https://img.shields.io/badge/herdr_0.9.5-1E1E22?style=flat-square" alt="Compatibility target: herdr 0.9.5">
 <img src="https://img.shields.io/badge/0_runtime_deps-1E1E22?style=flat-square" alt="No runtime dependencies">
-<img src="https://img.shields.io/badge/103_tests-1E1E22?style=flat-square" alt="103 tests">
+<img src="https://img.shields.io/badge/104_tests-1E1E22?style=flat-square" alt="104 tests">
 <a href="#install"><img src="https://img.shields.io/badge/install-F97316?style=flat-square&labelColor=1E1E22" alt="Install"></a>
 </p>
 
@@ -92,8 +92,10 @@ Title-only changes do not trigger a delta. A `done` status displays as `idle`.
 
 The beacon publishes this pane's `task`, `now`, and `did` tokens to Herdr
 metadata under source `omp-herdr-neighbors`. It uses zero model calls:
-the prompt sets `task`, tool events update `now`, and the last assistant reply
-sets `did`. Session start and session switch clear the three tokens.
+the text you type sets `task`, tool events update `now`, and the last assistant reply
+sets `did`. Prompts sent by other extensions (review gates, follow-ups) never
+replace `task`. Session start and session switch clear the three tokens.
+
 Neighbor lines use task/reply tokens only from OMP panes.
 Other agent kinds have no `asked`/`did`. Replies appear only while idle.
 Reply changes while working never create a delta.

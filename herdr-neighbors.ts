@@ -94,7 +94,7 @@ export default function herdrNeighbors(omp: ExtensionAPI): void {
       }
       try {
         await run(process.env.HERDR_BIN || "herdr", args, RUN_OPTIONS);
-      } catch {}
+      } catch { }
     } while (dirty);
     publishing = false;
   }
@@ -135,9 +135,21 @@ export default function herdrNeighbors(omp: ExtensionAPI): void {
     void publish();
   });
 
+  // Extension-sent prompts (review gates, follow-ups) fire no input event, so they never become the task.
+  let sawInput = false;
+  let typed: string | undefined;
+  omp.on("input", (event, ctx) => {
+    if (ctx?.agent?.kind === "sub" || event.source === "extension") return;
+    sawInput = true;
+    typed = event.text;
+  });
+
   omp.on("before_agent_start", async (event, ctx) => {
     if (ctx?.agent?.kind === "sub") return;
-    const task = taskLine(event.prompt);
+    // Print mode fires no input events; there the prompt itself is the user's text.
+    const text = sawInput ? typed : event.prompt;
+    typed = undefined;
+    const task = text === undefined ? undefined : taskLine(text);
     if (task) state.task = task;
     state.now = state.did = "";
     void publish();
