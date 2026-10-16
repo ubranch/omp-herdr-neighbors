@@ -2,7 +2,7 @@ import { afterAll, afterEach, beforeAll, beforeEach, expect, spyOn, test } from 
 import { execFileSync } from "node:child_process";
 import { appendFileSync, existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { homedir, tmpdir } from "node:os";
-import { delimiter, dirname, join, relative } from "node:path";
+import { delimiter, dirname, join } from "node:path";
 import type { ExtensionAPI } from "@oh-my-pi/pi-coding-agent";
 import herdrNeighbors from "../herdr-neighbors.ts";
 
@@ -1064,11 +1064,16 @@ test("other agent kinds never read transcripts or task and did tokens", async ()
 });
 
 test("rejects a relative path even when its transcript exists", async () => {
-  const file = writeTranscript(join(directory, `relative-${testNumber}.jsonl`),
-    claudeUser("Never expose this prompt"));
-  setAgents([own, transcriptAgent("claude", relative(process.cwd(), file))]);
-  expect((await turn())?.message.content).toBe(block(...guide,
-    "w1:p2(reviewer) claude idle C:/review | Review changes"));
+  // relative() returns an absolute path when temp and cwd sit on different Windows drives.
+  const name = `relative-${testNumber}.jsonl`;
+  const file = writeTranscript(join(process.cwd(), name), claudeUser("Never expose this prompt"));
+  try {
+    setAgents([own, transcriptAgent("claude", name)]);
+    expect((await turn())?.message.content).toBe(block(...guide,
+      "w1:p2(reviewer) claude idle C:/review | Review changes"));
+  } finally {
+    rmSync(file, { force: true });
+  }
 });
 
 test("renders a full omp, Claude and Codex sample block", async () => {
