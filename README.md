@@ -84,8 +84,8 @@ Compaction, session switches, branches, and tree navigation reset the first
 full block (`session_compact`, `session_switch`, `session_branch`, `session_tree`).
 Every hook ignores subagents (`ctx.agent.kind === 'sub'`).
 
-The list shows at most 12 neighbors, then `+N more`. A delta shows at most
-12 changed neighbors, then `+N more changed`, plus any gone panes.
+The full list and each delta show every neighbor that changed, plus any gone
+panes.
 Titles cap at 40 characters and directories at 80, with the home directory
 shortened to `~`. All fields stay on one line; `<` becomes `&lt;`.
 Title-only changes do not trigger a delta. A `done` status displays as `idle`.

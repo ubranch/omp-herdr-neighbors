@@ -338,7 +338,6 @@ export default function herdrNeighbors(omp: ExtensionAPI): void {
       });
       const current = new Map<string, string>();
       const lines: string[] = [];
-      let changed = 0;
       for (const agent of neighbors) {
         const status = agent.agent_status === "done" ? "idle" : agent.agent_status;
         const task = agent.agent === "omp" && typeof agent.tokens?.task === "string" ? agent.tokens.task : "";
@@ -346,8 +345,6 @@ export default function herdrNeighbors(omp: ExtensionAPI): void {
         const key = JSON.stringify([agent.agent, agent.cwd, agent.name ?? "", status, task, status === "idle" ? did : ""]);
         current.set(agent.pane_id, key);
         if (sent?.get(agent.pane_id) === key) continue;
-        changed++;
-        if (changed > 12) continue;
         const inHome = agent.cwd.startsWith(home)
           && (agent.cwd.length === home.length || agent.cwd[home.length] === "/" || agent.cwd[home.length] === "\\");
         const cwd = inHome ? `~${agent.cwd.slice(home.length)}` : agent.cwd;
@@ -359,7 +356,6 @@ export default function herdrNeighbors(omp: ExtensionAPI): void {
           + (status === "idle" && did ? ` | did: ${clean(did, 80)}` : ""),
         );
       }
-      if (changed > 12) lines.push(`+${changed - 12} more${sent ? " changed" : ""}`);
       if (sent) {
         for (const pane of sent.keys()) {
           if (!current.has(pane)) lines.push(`${clean(pane, 40)} gone`);

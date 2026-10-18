@@ -532,24 +532,22 @@ test("caps titles at 40 characters and cwd at 80 characters", async () => {
     `w1:p2(reviewer) gemini idle C:/${"c".repeat(76)}… | ${"t".repeat(39)}…`));
 });
 
-test("caps the first full block at twelve panes and remembers omitted panes", async () => {
+test("lists every pane in the first full block", async () => {
   const handlers = loadHandlers();
   const agents = Array.from({ length: 15 }, (_, index) => ({
     ...neighbor, pane_id: `w2:p${String(index + 1).padStart(2, "0")}`, workspace_id: "w2",
   }));
   setAgents([own, ...agents]);
   const content = (await turn(handlers))!.message.content;
-  expect(content.split("\n").filter((line) => line.startsWith("w2:p"))).toHaveLength(12);
-  expect(content).toContain("\nw2:p01(reviewer)");
-  expect(content).not.toContain("\nw2:p13");
-  expect(content).toEndWith("\n+3 more\n</herdr-neighbors>");
+  expect(content.split("\n").filter((line) => line.startsWith("w2:p"))).toHaveLength(15);
+  expect(content).not.toContain(" more");
   expect(await turn(handlers)).toBeUndefined();
   setAgents([own, ...agents.map((agent, index) => index === 14 ? { ...agent, agent_status: "working" } : agent)]);
   expect((await turn(handlers))?.message.content).toBe(block(
     "w2:p15(reviewer) gemini working C:/review | Review changes"));
 });
 
-test("caps changed lines at twelve, counts more changed and still lists gone panes", async () => {
+test("lists every changed pane and gone panes in a delta", async () => {
   const handlers = loadHandlers();
   const agents = Array.from({ length: 15 }, (_, index) => ({
     ...neighbor, pane_id: `w2:p${String(index + 1).padStart(2, "0")}`, workspace_id: "w2",
@@ -558,8 +556,8 @@ test("caps changed lines at twelve, counts more changed and still lists gone pan
   await turn(handlers);
   setAgents([own, ...agents.map((agent) => ({ ...agent, agent_status: "working" }))]);
   const content = (await turn(handlers))!.message.content;
-  expect(content.split("\n").filter((line) => line.includes(" gemini working "))).toHaveLength(12);
-  expect(content).toContain("\n+3 more changed\n");
+  expect(content.split("\n").filter((line) => line.includes(" gemini working "))).toHaveLength(15);
+  expect(content).not.toContain(" more");
   expect(content).toContain("\nw1:p2 gone\n");
   expect(content).not.toContain(guide[0]);
   expect(await turn(handlers)).toBeUndefined();

@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.5.1 — 2026-10-18
+
+- List every neighbor in full blocks and deltas; drop the 12-pane cap and `+N more` line.
+
 ## 0.5.0 — 2026-10-16
 
 - Warn before edit/write/ast_edit when another live pane recently edited the same file; record successful edits atomically with bounded retention and ignore subagents, non-file schemes, and file errors. Keep task text out of edit records and trusted guard guidance.
