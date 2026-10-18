@@ -1,5 +1,10 @@
 # Changelog
 
+## 0.5.2 — 2026-10-18
+
+- Expose `herdr_await` as a top-level tool (`loadMode: "essential"`); as a discoverable `xd://` device, agents in a live demo read its docs but never called it.
+- Skip reply lines that start with inline code when choosing `did`, so a next-step command no longer hides the result line.
+
 ## 0.5.1 — 2026-10-18
 
 - List every neighbor in full blocks and deltas; drop the 12-pane cap and `+N more` line.

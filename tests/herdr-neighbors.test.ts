@@ -860,6 +860,7 @@ test.each([
   ["What this change does:\n| File | Change |\n```text\n- **Fixed** the login bug", "fixed the login bug"],
   ["## Summary:\n> Shipped the fix\nLater result", "shipped the fix"],
   ["## Summary:\n| only table |\n```", "summary:"],
+  ["`bun test` buyrug'ini ishga tushiring.\nAdded findBooks search", "added findbooks search"],
   ["  # > - ** **\n\n", ""],
 ])("selects the first useful beacon reply from %s", async (text, did) => {
   const handlers = loadHandlers();

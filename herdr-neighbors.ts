@@ -55,7 +55,8 @@ function taskLine(text: string): string | undefined {
 function didLine(text: string): string {
   const lines = text.split(/[\r\n]/u)
     .map((line) => line.replace(/^[\s#>*-]+/u, "").replaceAll("**", "").trim()).filter(Boolean);
-  return oneLine(lines.find((line) => !line.endsWith(":") && !line.startsWith("|") && !line.startsWith("```"))
+  // A line that starts with code is a next-step command, not a result.
+  return oneLine(lines.find((line) => !line.endsWith(":") && !line.startsWith("|") && !line.startsWith("`"))
     ?? lines[0] ?? "", 80);
 }
 
@@ -131,6 +132,8 @@ export default function herdrNeighbors(omp: ExtensionAPI): void {
   omp.registerTool({
     name: "herdr_await",
     label: "Await Herdr agent",
+    // Discoverable tools hide behind xd://; the Gemini E2E demo read the docs but never called it.
+    loadMode: "essential",
     description: "Wait for another Herdr agent pane to finish, then continue. Returns at once; end your turn after calling it. A message arrives when that pane is idle, done or blocked.",
     parameters: omp.zod.object({ pane: omp.zod.string(), note: omp.zod.string().max(200).optional() }),
     execute: async (_id, { pane, note }, _signal, _update, ctx) => {
