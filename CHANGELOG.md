@@ -1,5 +1,12 @@
 # Changelog
 
+## 0.5.0 — 2026-10-16
+
+- Warn before edit/write/ast_edit when another live pane recently edited the same file; record successful edits atomically with bounded retention and ignore subagents, non-file schemes, and file errors. Keep task text out of edit records and trusted guard guidance.
+- Add `herdr_await` for event-driven pane completion messages, with per-pane deduplication, current status reads, bounded waits, and silent cancellation on session switch or shutdown.
+- Lowercase the entire `now` and `did` beacon values with `toLocaleLowerCase()` before publishing; preserve `task` casing.
+- Document edit-guard limits, measured tool-schema token cost, Herdr sidebar rows, and existing completion toasts.
+
 ## 0.4.0 — 2026-10-16
 
 - Remove Claude Code and Codex transcript reading; asked/did come only from omp beacons.
