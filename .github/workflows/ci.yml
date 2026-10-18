@@ -31,3 +31,5 @@ jobs:
         run: bun run typecheck
       - name: Run regression suite
         run: bun run test
+        env:
+          HOME: /tmp/omp-test-home

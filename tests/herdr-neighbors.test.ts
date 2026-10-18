@@ -275,10 +275,15 @@ beforeEach(() => {
   loaded.length = 0;
   publishing.clear();
   logFile = join(directory, `metadata-${++testNumber}.jsonl`);
-  const home = join(directory, `home-${testNumber}`);
+  let home = join(directory, `home-${testNumber}`);
   mkdirSync(home);
   process.env.HOME = process.env.USERPROFILE = home;
-  expect(homedir()).toBe(home);
+  if (homedir() !== home) {
+    // Bun on Linux reads HOME once at startup; CI starts the suite with a temp HOME instead.
+    home = homedir();
+    if (!resolve(home).startsWith(resolve(tmpdir()))) throw new Error("Run tests with HOME set to a temp directory");
+    rmSync(join(home, ".omp"), { recursive: true, force: true });
+  }
   editsDirectory = join(home, ".omp", "herdr-neighbors", "edits");
   process.env.HERDR_ENV = "1";
   process.env.HERDR_PANE_ID = own.pane_id;
