@@ -1,5 +1,18 @@
 # Changelog
 
+## 0.6.0 — 2026-10-19
+
+Driven by live 4-agent Gemini 3.8 Flash runs (schema rename, search, CSV export, tester on one repo).
+
+- `herdr_await` takes `panes` (1-8) and sends one message when all finish; a new call replaces the earlier group. Split single-pane awaits had stalled the tester mid-way.
+- Publish a `waiting` beacon token while awaiting. An idle pane that is still waiting counts as not finished: the await re-arms with `herdr agent wait --until working`, so a tester no longer wakes before its dependencies' dependencies finish.
+- Refuse an await cycle (`Deadlock: … is already waiting for you`) and flag a pane that starts waiting for this one.
+- The resume message ends with `Awaited agents finished. Continue your own task now.`
+- Neighbor lines add `edits:` (files changed in the last 10 min) and `waiting:`; `did` is hidden while a pane waits.
+- Mid-turn deltas for this workspace ride on tool calls, at most every 20 s, as hidden asides; none while `wait` runs or the agent is idle.
+- Block `bash`/`eval` herdr `wait`/`list` polling, and `get`/`read` of awaited panes, while an await runs.
+- Guide: same-file edits are fine (re-read before each edit); wait only for results you need.
+
 ## 0.5.4 — 2026-10-18
 
 - Block only shell polls of the pane `herdr_await` is waiting for (by pane id or Herdr name); other panes stay queryable.
