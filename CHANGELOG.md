@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.6.3 — 2026-10-19
+
+- Test-only: hold the first wait open in the bounce test. Windows CI failed on v0.6.2 because the fake herdr marked the pane idle first; extension code is unchanged from v0.6.2.
+
 ## 0.6.2 — 2026-10-19
 
 - `herdr_await` bounces once when the user's prompt never names an awaited pane (by pane id or Herdr name); the same call again proceeds. With `needs` alone, `search` still waited for `export` in 2 of 3 runs; with the bounce, 0 of 2 runs had a needless wait, and the tester (whose prompt names the agents) waited at once.

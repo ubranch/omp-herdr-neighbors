@@ -1267,7 +1267,8 @@ test("neighbor lines show waiting instead of a stale did", async () => {
 });
 
 test("bounces a wait on panes the prompt never names once, then allows it; named panes wait at once", async () => {
-  setAgents([own, { ...neighbor, agent: "omp", agent_status: "working" }]);
+  // Hold the first wait open; otherwise the fake marks w1:p2 idle before the named-pane check.
+  setAgents([own, { ...neighbor, agent: "omp", agent_status: "working" }], { waitRelease: join(directory, `wait-release-${testNumber}`) });
   const handlers = loadHandlers();
   await turn(handlers, "Add search to the store");
   expect(await awaitPane(handlers)).toBe("Your task never mentions w1:p2. Shared files are no reason to wait: do your own work now. If you truly cannot proceed without their finished output, call herdr_await again with the same panes.");
