@@ -8,7 +8,7 @@
 <img src="https://img.shields.io/badge/omp_18.8.7-1E1E22?style=flat-square" alt="Compatibility target: omp 18.8.7">
 <img src="https://img.shields.io/badge/herdr_0.9.5-1E1E22?style=flat-square" alt="Compatibility target: herdr 0.9.5">
 <img src="https://img.shields.io/badge/0_runtime_deps-1E1E22?style=flat-square" alt="No runtime dependencies">
-<img src="https://img.shields.io/badge/165_tests-1E1E22?style=flat-square" alt="165 tests">
+<img src="https://img.shields.io/badge/169_tests-1E1E22?style=flat-square" alt="169 tests">
 <a href="#install"><img src="https://img.shields.io/badge/install-F97316?style=flat-square&labelColor=1E1E22" alt="Install"></a>
 </p>
 
@@ -126,10 +126,12 @@ OMP's rendered skill template uses only text after its last `User: ` line;
 invocations without arguments preserve the task. Every new OMP turn still
 clears `now` and `did`.
 
-Reply lines lose leading whitespace and Markdown heading/quote/list markers,
-plus all `**`. Empty lines are dropped. The first line that is not a heading
-ending in `:`, a table row starting with `|`, or a code fence is used.
-If none qualifies, the first nonempty cleaned line is used.
+Reply lines lose leading whitespace and Markdown heading/quote/list markers (including `1.`),
+plus all `**`. Empty lines are dropped. Lines that are a heading ending in
+`:`, a table row starting with `|`, or a code fence are skipped. If the first
+remaining line contains inline code and another line follows, the second line
+is used, because a code-bearing opener is usually the next command to run.
+If no line qualifies, the first nonempty cleaned line is used.
 Tasks and replies collapse whitespace and cap at 80 characters.
 
 The message is hidden from the chat display, not from the model.

@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.6.4 — 2026-10-19
+
+- `did` strips numbered-list markers and skips only a code-bearing first line (usually the next command to run); later lines that start with inline code are kept. In three live 4-agent runs the old rule dropped result lines such as "`Book.year` renamed to `publishedYear`" and published a mid-reply fragment instead.
+
 ## 0.6.3 — 2026-10-19
 
 - Test-only: hold the first wait open in the bounce test. Windows CI failed on v0.6.2 because the fake herdr marked the pane idle first; extension code is unchanged from v0.6.2.

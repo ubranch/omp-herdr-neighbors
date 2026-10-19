@@ -888,6 +888,10 @@ test.each([
   ["## Summary:\n> Shipped the fix\nLater result", "shipped the fix"],
   ["## Summary:\n| only table |\n```", "summary:"],
   ["`bun test` buyrug'ini ishga tushiring.\nAdded findBooks search", "added findbooks search"],
+  ["`bun test` buyrug'ini tekshiring.\n`Book.year` maydoni `publishedYear` ga o'zgartirildi.\nYil 1450 dan katta", "`book.year` maydoni `publishedyear` ga o'zgartirildi."],
+  ["Natijani ko'rish uchun `bun test` buyrug'ini ishga tushiring.\n3/3 bosqich yakunlandi", "3/3 bosqich yakunlandi"],
+  ["`bun test` passed", "`bun test` passed"],
+  ["1. Renamed year\n2. Added checks", "renamed year"],
   ["  # > - ** **\n\n", ""],
 ])("selects the first useful beacon reply from %s", async (text, did) => {
   const handlers = loadHandlers();

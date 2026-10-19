@@ -55,10 +55,12 @@ function taskLine(text: string): string | undefined {
 
 function didLine(text: string): string {
   const lines = text.split(/[\r\n]/u)
-    .map((line) => line.replace(/^[\s#>*-]+/u, "").replaceAll("**", "").trim()).filter(Boolean);
-  // A line that starts with code is a next-step command, not a result.
-  return oneLine(lines.find((line) => !line.endsWith(":") && !line.startsWith("|") && !line.startsWith("`"))
-    ?? lines[0] ?? "", 80);
+    .map((line) => line.replace(/^[\s#>*-]+/u, "").replace(/^\d+[.)]\s+/u, "").replaceAll("**", "").trim()).filter(Boolean);
+  const useful = lines.filter((line) => !line.endsWith(":") && !line.startsWith("|") && !line.startsWith("```"));
+  // A code-bearing opener is usually the next command to run; later code-led lines are results
+  // (live demos: "`Book.year` renamed …" was dropped for a mid-reply fragment).
+  const pick = useful[0]?.includes("`") && useful[1] ? useful[1] : useful[0];
+  return oneLine(pick ?? lines[0] ?? "", 80);
 }
 
 function clean(value: string, max: number): string {
