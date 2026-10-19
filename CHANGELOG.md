@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.5.4 — 2026-10-18
+
+- Block only shell polls of the pane `herdr_await` is waiting for (by pane id or Herdr name); other panes stay queryable.
+
 ## 0.5.3 — 2026-10-18
 
 - While `herdr_await` waits, block shell `herdr agent wait|get` calls; a live demo agent called the tool and then also polled by hand.

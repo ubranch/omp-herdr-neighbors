@@ -1115,9 +1115,11 @@ test("await returns before completion, dedupes and sends one aside with the late
   expect(messages.get(handlers)).toEqual([]);
   expect(await awaitPane(handlers)).toBe("Already waiting for w1:p2.");
   expect(waitCalls()).toHaveLength(1);
-  expect(await invoke(handlers, "tool_call", { toolName: "bash", input: { command: "herdr agent wait w1:p2" } })).toEqual({
-    block: true, reason: "herdr_await is already waiting for w1:p2. End your turn; a message arrives when it finishes.",
-  });
+  const blocked = { block: true as const, reason: "herdr_await is already waiting for w1:p2. End your turn; a message arrives when it finishes." };
+  const bash = (command: string) => invoke(handlers, "tool_call", { toolName: "bash", input: { command } });
+  expect(await bash("herdr agent wait w1:p2")).toEqual(blocked);
+  expect(await bash("herdr agent get reviewer | jq .result")).toEqual(blocked);
+  expect(await bash("herdr agent get w1:p9")).toBeUndefined();
   writeFileSync(release, "ready");
   await poll(() => messages.get(handlers)!, (sent) => sent.length === 1);
   expect(messages.get(handlers)).toEqual([{

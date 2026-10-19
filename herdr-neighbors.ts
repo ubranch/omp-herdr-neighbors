@@ -109,6 +109,8 @@ export default function herdrNeighbors(omp: ExtensionAPI): void {
   let neighborPanes: Set<string> | undefined;
   let editWrites = Promise.resolve();
   const waits = new Map<string, ChildProcess>();
+  // Pane id plus Herdr name, so `herdr agent get validator` is caught too; stale entries are ignored.
+  const waitNames = new Map<string, string[]>();
   let waitEpoch = 0;
 
   async function getAgent(pane: string): Promise<Agent> {
@@ -174,6 +176,7 @@ export default function herdrNeighbors(omp: ExtensionAPI): void {
             })();
           });
         waits.set(pane, child);
+        waitNames.set(pane, [pane, agent.pane_id, agent.name].filter((name): name is string => !!name));
         return result(`Waiting for ${pane}. End your turn now; a message arrives when it finishes.`);
       } catch (error) {
         waits.delete(pane);
@@ -193,7 +196,8 @@ export default function herdrNeighbors(omp: ExtensionAPI): void {
     // The Gemini E2E demo called herdr_await, then also polled herdr by hand; the aside already covers it.
     const command = event.toolName === "bash" && event.input && typeof event.input === "object" && "command" in event.input
       ? String(event.input.command) : "";
-    if (waits.size && /\bherdr\s+agent\s+(wait|get)\b/u.test(command)) {
+    const waited = new Set([...waits.keys()].flatMap((pane) => waitNames.get(pane) ?? [pane]));
+    if (waited.size && /\bherdr\s+agent\s+(wait|get)\b/u.test(command) && command.split(/[\s"'=]+/u).some((word) => waited.has(word))) {
       return { block: true, reason: `herdr_await is already waiting for ${[...waits.keys()].join(", ")}. End your turn; a message arrives when it finishes.` };
     }
     const paths = editPaths(event.toolName, event.input, ctx.cwd);
