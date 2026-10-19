@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.6.2 — 2026-10-19
+
+- `herdr_await` bounces once when the user's prompt never names an awaited pane (by pane id or Herdr name); the same call again proceeds. With `needs` alone, `search` still waited for `export` in 2 of 3 runs; with the bounce, 0 of 2 runs had a needless wait, and the tester (whose prompt names the agents) waited at once.
+
 ## 0.6.1 — 2026-10-19
 
 - `herdr_await` requires `needs`: the finished output the task cannot proceed without. In the 4-agent demo, v0.6.0 had `search` wait for an unrelated `export`; with `needs`, only real dependencies (export on the schema rename, tester on all three) waited.

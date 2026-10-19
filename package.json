@@ -1,6 +1,6 @@
 {
   "name": "omp-herdr-neighbors",
-  "version": "0.6.1",
+  "version": "0.6.2",
   "description": "tells your omp agent which other herdr agents run beside it. hidden context, refreshed on change, no runtime deps.",
   "type": "module",
   "license": "MIT",

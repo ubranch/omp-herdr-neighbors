@@ -173,6 +173,13 @@ export default function herdrNeighbors(omp: ExtensionAPI): void {
       if (missing.length) return result(`Agent not found: ${missing.join(", ")}.`);
       const cycle = requested.filter((_, index) => waitingOn(found[index]!).includes(ownPane));
       if (cycle.length) return result(`Deadlock: ${cycle.join(", ")} is already waiting for you. Do your part first.`);
+      // Live demos v7/v8: search waited for export despite `needs`; panes the user's prompt never names get one bounce.
+      const unnamed = requested.filter((pane, index) => ![pane, found[index]!.name].some((name) => name && prompt.includes(name.toLowerCase())));
+      const key = requested.join(",");
+      if (prompt && unnamed.length && confirmed !== key) {
+        confirmed = key;
+        return result(`Your task never mentions ${unnamed.join(", ")}. Shared files are no reason to wait: do your own work now. If you truly cannot proceed without their finished output, call herdr_await again with the same panes.`);
+      }
       if (running()) return result(`Already waiting for ${requested.join(", ")}.`);
       if (epoch !== waitEpoch) return result("Session changed; wait cancelled.");
       // A new call replaces the earlier group, so exactly one message resumes the agent (demo: split awaits stalled it).
@@ -390,6 +397,8 @@ export default function herdrNeighbors(omp: ExtensionAPI): void {
   // Extension-sent prompts (review gates, follow-ups) fire no input event, so they never become the task.
   let sawInput = false;
   let typed: string | undefined;
+  let prompt = "";
+  let confirmed = "";
   omp.on("input", (event, ctx) => {
     if (ctx?.agent?.kind === "sub" || event.source === "extension") return;
     sawInput = true;
@@ -402,7 +411,11 @@ export default function herdrNeighbors(omp: ExtensionAPI): void {
     const text = sawInput ? typed : event.prompt;
     typed = undefined;
     const task = text === undefined ? undefined : taskLine(text);
-    if (task) state.task = task;
+    if (task) {
+      state.task = task;
+      prompt = text!.toLowerCase();
+      confirmed = "";
+    }
     state.now = state.did = "";
     void publish();
     try {

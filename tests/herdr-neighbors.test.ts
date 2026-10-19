@@ -1266,6 +1266,18 @@ test("neighbor lines show waiting instead of a stale did", async () => {
   expect((await turn())!.message.content).toContain("w1:p2(reviewer) omp idle C:/review | Review changes | waiting: w1:p3, w1:p4\n");
 });
 
+test("bounces a wait on panes the prompt never names once, then allows it; named panes wait at once", async () => {
+  setAgents([own, { ...neighbor, agent: "omp", agent_status: "working" }]);
+  const handlers = loadHandlers();
+  await turn(handlers, "Add search to the store");
+  expect(await awaitPane(handlers)).toBe("Your task never mentions w1:p2. Shared files are no reason to wait: do your own work now. If you truly cannot proceed without their finished output, call herdr_await again with the same panes.");
+  expect(waitCalls()).toEqual([]);
+  expect(await awaitPane(handlers)).toBe("Waiting for w1:p2. End your turn now; one message arrives when all finish.");
+  const named = loadHandlers();
+  await turn(named, "When the Reviewer is done, write tests");
+  expect(await awaitPane(named)).toBe("Waiting for w1:p2. End your turn now; one message arrives when all finish.");
+});
+
 test("lists each neighbor's files edited in the last ten minutes", async () => {
   seedEdits(neighbor.pane_id, {
     [filePath("old.ts")]: Date.now() - 700_000,

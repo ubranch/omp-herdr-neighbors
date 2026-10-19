@@ -8,7 +8,7 @@
 <img src="https://img.shields.io/badge/omp_18.8.7-1E1E22?style=flat-square" alt="Compatibility target: omp 18.8.7">
 <img src="https://img.shields.io/badge/herdr_0.9.5-1E1E22?style=flat-square" alt="Compatibility target: herdr 0.9.5">
 <img src="https://img.shields.io/badge/0_runtime_deps-1E1E22?style=flat-square" alt="No runtime dependencies">
-<img src="https://img.shields.io/badge/164_tests-1E1E22?style=flat-square" alt="164 tests">
+<img src="https://img.shields.io/badge/165_tests-1E1E22?style=flat-square" alt="165 tests">
 <a href="#install"><img src="https://img.shields.io/badge/install-F97316?style=flat-square&labelColor=1E1E22" alt="Install"></a>
 </p>
 
@@ -166,9 +166,14 @@ Task text is neither stored in edit records nor added to trusted guard guidance.
 Call `herdr_await` with
 `{ "panes": ["w1:p2", "w1:p3"], "needs": "their search and CSV endpoints", "note": "Write the tests" }`.
 Pass every pane you depend on (1 to 8). The required `needs` (3 to 200
-characters) names the finished output the task cannot proceed without; in a
-live demo this stopped an agent from waiting for an unrelated pane. The optional `note` describes what to
-do next and allows at most 200 characters.
+characters) names the finished output the task cannot proceed without. The
+optional `note` describes what to do next and allows at most 200 characters.
+
+If the user's prompt never names an awaited pane (pane ID or Herdr name), the
+first call returns `Your task never mentions <panes>. … call herdr_await again
+with the same panes.` and starts nothing; the same call again proceeds.
+In live 4-agent demos, `needs` alone still let `search` wait for `export` in 2
+of 3 runs; with this bounce, 0 of 2 runs had a needless wait.
 Pane IDs must match `^[\w:-]{1,40}$`; own-pane waits and subagents are refused.
 Unknown panes return a text error.
 
