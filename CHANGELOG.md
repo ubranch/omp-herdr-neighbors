@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.5.3 — 2026-10-18
+
+- While `herdr_await` waits, block shell `herdr agent wait|get` calls; a live demo agent called the tool and then also polled by hand.
+
 ## 0.5.2 — 2026-10-18
 
 - Expose `herdr_await` as a top-level tool (`loadMode: "essential"`); as a discoverable `xd://` device, agents in a live demo read its docs but never called it.

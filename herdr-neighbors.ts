@@ -190,6 +190,12 @@ export default function herdrNeighbors(omp: ExtensionAPI): void {
 
   omp.on("tool_call", async (event, ctx) => {
     if (ctx?.agent?.kind === "sub") return;
+    // The Gemini E2E demo called herdr_await, then also polled herdr by hand; the aside already covers it.
+    const command = event.toolName === "bash" && event.input && typeof event.input === "object" && "command" in event.input
+      ? String(event.input.command) : "";
+    if (waits.size && /\bherdr\s+agent\s+(wait|get)\b/u.test(command)) {
+      return { block: true, reason: `herdr_await is already waiting for ${[...waits.keys()].join(", ")}. End your turn; a message arrives when it finishes.` };
+    }
     const paths = editPaths(event.toolName, event.input, ctx.cwd);
     if (!paths.length) return;
     const lines: string[] = [];

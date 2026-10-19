@@ -37,7 +37,8 @@ type EventName = "before_agent_start" | "session_start" | "session_switch" | "se
 type Handler = (
   event: Record<string, unknown>,
   ctx: { agent: { kind: "main" | "sub" }; cwd: string },
-) => Injection | { additionalContext: string } | void | Promise<Injection | { additionalContext: string } | void>;
+) => HandlerResult | Promise<HandlerResult>;
+type HandlerResult = Injection | { additionalContext?: string; block?: true; reason?: string } | void;
 type Handlers = Map<string, Handler>;
 type FixtureOptions = {
   exitCode?: number;
@@ -1114,6 +1115,9 @@ test("await returns before completion, dedupes and sends one aside with the late
   expect(messages.get(handlers)).toEqual([]);
   expect(await awaitPane(handlers)).toBe("Already waiting for w1:p2.");
   expect(waitCalls()).toHaveLength(1);
+  expect(await invoke(handlers, "tool_call", { toolName: "bash", input: { command: "herdr agent wait w1:p2" } })).toEqual({
+    block: true, reason: "herdr_await is already waiting for w1:p2. End your turn; a message arrives when it finishes.",
+  });
   writeFileSync(release, "ready");
   await poll(() => messages.get(handlers)!, (sent) => sent.length === 1);
   expect(messages.get(handlers)).toEqual([{
