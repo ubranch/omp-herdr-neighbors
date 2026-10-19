@@ -151,9 +151,11 @@ export default function herdrNeighbors(omp: ExtensionAPI): void {
     label: "Await Herdr agent",
     // Discoverable tools hide behind xd://; the Gemini E2E demo read the docs but never called it.
     loadMode: "essential",
-    description: "Wait until other Herdr agent panes finish (idle, done or blocked). Pass every pane you depend on. Returns at once; end your turn after calling it. One message arrives when all of them finish.",
+    // Live demo v5: an agent waited for an unrelated pane; naming the needed output makes the dependency explicit.
+    description: "Wait until other Herdr agent panes finish (idle, done or blocked). Only for panes whose finished output your task cannot proceed without; shared files alone are no reason. Returns at once; end your turn after calling it. One message arrives when all finish.",
     parameters: omp.zod.object({
       panes: omp.zod.array(omp.zod.string()).min(1).max(8),
+      needs: omp.zod.string().min(3).max(200),
       note: omp.zod.string().max(200).optional(),
     }),
     execute: async (_id, { panes, note }, _signal, _update, ctx) => {

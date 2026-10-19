@@ -163,8 +163,11 @@ Task text is neither stored in edit records nor added to trusted guard guidance.
 
 ## herdr_await
 
-Call `herdr_await` with `{ "panes": ["w1:p2", "w1:p3"], "note": "Write the tests" }`.
-Pass every pane you depend on (1 to 8). The optional `note` describes what to
+Call `herdr_await` with
+`{ "panes": ["w1:p2", "w1:p3"], "needs": "their search and CSV endpoints", "note": "Write the tests" }`.
+Pass every pane you depend on (1 to 8). The required `needs` (3 to 200
+characters) names the finished output the task cannot proceed without; in a
+live demo this stopped an agent from waiting for an unrelated pane. The optional `note` describes what to
 do next and allows at most 200 characters.
 Pane IDs must match `^[\w:-]{1,40}$`; own-pane waits and subagents are refused.
 Unknown panes return a text error.
@@ -201,7 +204,7 @@ Queries about other panes still run. Live Gemini demos polled by hand without
 this block.
 
 Its compact JSON tool definition, including name, description, and parameter
-schema, measures **102 tokens** with `o200k_base`.
+schema, measures **130 tokens** with `o200k_base`.
 Measured from the registered schema using
 `uv run --quiet --with tiktoken python`.
 This is a tokenizer proxy, not a provider billing measurement.

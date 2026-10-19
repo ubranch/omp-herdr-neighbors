@@ -27,7 +27,7 @@ type AwaitTool = {
   description: string;
   parameters: { toJsonSchema(): Record<string, unknown> };
   execute: (
-    id: string, params: { panes: string[]; note?: string }, signal: AbortSignal,
+    id: string, params: { panes: string[]; needs: string; note?: string }, signal: AbortSignal,
     update: undefined, ctx: { agent: { kind: "main" | "sub" }; cwd: string; isIdle?: () => boolean },
   ) => Promise<{ content: { type: string; text: string }[] }>;
 };
@@ -171,7 +171,7 @@ function ownEdits(): { pane: string; files: Record<string, number> } {
 function awaitPane(handlers: Handlers, pane: string | string[] = neighbor.pane_id, note?: string, kind: "main" | "sub" = "main") {
   const tool = tools.get(handlers)!.find((tool) => tool.name === "herdr_await");
   expect(tool).toBeDefined();
-  return tool!.execute("await-1", { panes: [pane].flat(), note }, new AbortController().signal, undefined,
+  return tool!.execute("await-1", { panes: [pane].flat(), needs: "their finished result", note }, new AbortController().signal, undefined,
     { agent: { kind }, cwd: directory }).then((result) => result.content.map((part) => part.text).join("\n"));
 }
 
@@ -1092,9 +1092,10 @@ test("registers the await tool only inside the process gate", () => {
     type: "object",
     properties: {
       panes: { type: "array", items: { type: "string" }, minItems: 1, maxItems: 8 },
+      needs: { type: "string", minLength: 3, maxLength: 200 },
       note: { type: "string", maxLength: 200 },
     },
-    required: ["panes"],
+    required: ["panes", "needs"],
   });
   process.env.OMPCODE = "1";
   expect(tools.get(loadHandlers())).toEqual([]);

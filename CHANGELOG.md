@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.6.1 — 2026-10-19
+
+- `herdr_await` requires `needs`: the finished output the task cannot proceed without. In the 4-agent demo, v0.6.0 had `search` wait for an unrelated `export`; with `needs`, only real dependencies (export on the schema rename, tester on all three) waited.
+
 ## 0.6.0 — 2026-10-19
 
 Driven by live 4-agent Gemini 3.8 Flash runs (schema rename, search, CSV export, tester on one repo).
